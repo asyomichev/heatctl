@@ -30,11 +30,14 @@ class Thermometer(threading.Thread):
         
         while (self.active):
             line = self.port.readline()
-            values = line.split(' ', 2)
-            sensor = int(values[0])
-            temperature = float(values[1])
-            event = RawReadingEvent(sensor, temperature)
-            self.queue.processEvent(event)
+            try:
+                values = line.split(' ', 2)
+                sensor = int(values[0])
+                temperature = float(values[1])
+                event = RawReadingEvent(sensor, temperature)
+                self.queue.processEvent(event)
+            except:
+                pass # ignore lines that cannot be parsed
         self.logger.info("Stopped")
         
     def stop(self):
