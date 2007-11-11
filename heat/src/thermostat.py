@@ -1,7 +1,7 @@
 import logging
 from event import Event
 import datetime
-from time import strptime
+import time
 
 class HeaterStatusEvent(Event):
     def __init__(self, status):
@@ -32,16 +32,19 @@ class Thermostat:
         self.queue = queue
         self.schedule = []
         for period in config.items("Schedule"):
-            time = datetime.time(*strptime(period[1], "%H:%M")[3:5])
-            entry = ScheduleEntry(time, period[0], config)
+            tm = datetime.time(*time.strptime(period[1], "%H:%M")[3:5])
+            entry = ScheduleEntry(tm, period[0], config)
             index = 0
             while index < len(self.schedule):
-                if self.schedule[index].time > time:
+                if self.schedule[index].time > tm:
                     break
                 index += 1
             self.schedule.insert(index, entry)
         self.heaterStatus = True
         self.heaterOff()
+        
+        for entry in self.schedule:
+          self.logger.debug(entry.toString())
         
     def heaterOn(self):
         if not self.heaterStatus:
@@ -55,19 +58,20 @@ class Thermostat:
             self.heaterStatus = False
             self.logger.debug("furnace off")
 
-    def findPeriod(self, time):
+    def findPeriod(self, utc):
+        tm = datetime.time(*time.localtime(utc)[3:5])
         index = len(self.schedule)
         while index > 0:
             index -= 1
             entry = self.schedule[index]
-            if entry.time < time:
+            if entry.time < tm:
                 return entry
         return self.schedule[-1]
     
     def processEvent(self, event):
         period = self.findPeriod(event.timestamp)
+        self.logger.debug("Sensor %d = %f, current period %s" % (event.sensor, event.temperature, period.toString()))
         if (event.sensor == period.priority):
-           self.logger.debug("At %s sensor %d = %f - %s" % (event.timestamp.strftime("%H:%M"), event.sensor, event.temperature, period.toString()))
            if (event.temperature < period.target):
                self.heaterOn()
            else:
