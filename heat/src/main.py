@@ -50,7 +50,7 @@ averager = Averager(queue, config)
 thermometer = Thermometer(queue)
 thermostat = Thermostat(queue, config)
 switch = X10Switch(queue, config)
-#thermometer.start()
+thermometer.start()
 
 logger.info("Entering main loop")
 for i in range(0, 559):
