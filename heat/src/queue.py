@@ -16,8 +16,9 @@ class Subscription:
             if fp.match(event.type):
                 try:
                     self.subscriber.processEvent(event)
-                except:
+                except Exception, e:
                     self.logger.error("%s failed to process event %s" % (self.subscriber.id(), event.description()))
+                    self.logger.error("Exception: %s" % e)
                 return
     
 class EventQueue(threading.Thread):
