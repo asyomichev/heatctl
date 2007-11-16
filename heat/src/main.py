@@ -5,6 +5,7 @@ from thermostat import Thermostat
 from x10switch import X10Switch
 
 import logging
+import logging.config
 import time
 import getpass
 import ConfigParser
@@ -30,14 +31,16 @@ class EventLogger:
 if len(sys.argv) <= 1:
     raise RuntimeError("Please specify configuration file in the first argument")
 
-logging.basicConfig(level=logging.DEBUG,
-                    format='%(asctime)s %(levelname)s %(name)s %(message)s')
-                    #filename='/tmp/myapp.log',
-                    #filemode='w')
-                    
+configFile = sys.argv[1]
+
+#logging.basicConfig(level=logging.DEBUG,
+#                    format='%(asctime)s %(levelname)s %(name)s %(message)s')
+#                    #filename='/tmp/myapp.log',
+#                    #filemode='w')
+logging.config.fileConfig(configFile)
+
 logger = logging.getLogger("heat.init")
 config = ConfigParser.ConfigParser()
-configFile = sys.argv[1]
 logger.info("Loading configuration from %s" % configFile)
 config.read(configFile)
 logger.info("Creating the queue")
@@ -47,14 +50,19 @@ queue.start()
 logger.info("Configuring components")
 eventLogger = EventLogger(queue, [".*"] )
 averager = Averager(queue, config)
-thermometer = Thermometer(queue)
+thermometer = Thermometer(queue, config)
 thermostat = Thermostat(queue, config)
 switch = X10Switch(queue, config)
 thermometer.start()
 
-logger.info("Entering main loop")
-for i in range(0, 559):
-    time.sleep(1)
+cmd = ""
+while cmd != "exit":
+    cmd = raw_input("heat> ")
+    if (cmd == "status"):
+        print queue.status()
+        print thermometer.status()
+        print switch.status()
+     
 
 logger.info("Shutting down components")
 thermometer.stop()
