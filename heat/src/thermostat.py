@@ -50,13 +50,11 @@ class Thermostat:
         if not self.heaterStatus:
             self.queue.processEvent(HeaterStatusEvent("on"))
             self.heaterStatus = True
-            self.logger.debug("furnace on")
         
     def heaterOff(self):
         if self.heaterStatus:
             self.queue.processEvent(HeaterStatusEvent("off"))
             self.heaterStatus = False
-            self.logger.debug("furnace off")
 
     def findPeriod(self, utc):
         tm = datetime.time(*time.localtime(utc)[3:5])
@@ -72,9 +70,9 @@ class Thermostat:
         period = self.findPeriod(event.timestamp)
         self.logger.debug("Sensor %d = %f, current period %s" % (event.sensor, event.temperature, period.toString()))
         if (event.sensor == period.priority):
-           if (event.temperature < period.target):
+           if event.temperature < (period.target * 0.98):
                self.heaterOn()
-           else:
+           elif event.temperature > (period.target * 1.02):
                self.heaterOff()
         
     def unsubscribe(self):
