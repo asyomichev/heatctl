@@ -80,7 +80,6 @@ class EventQueue(threading.Thread):
         del self.subscriptions[listenerId]
         self.logger.debug("Removed listener (id: %d)" % listenerId)
         
-    def reportStatus(self, stream):
-        print >> stream, "Queue status:"
-        print >> stream, " subscribers: %d" % len(self.subscriptions) 
+    def status(self):
+        return "queue size %d" % len(self.subscriptions) 
         
