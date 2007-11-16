@@ -1,3 +1,17 @@
 create database heat;
-create table sensors (Time TIMESTAMP DEFAULT CURRENT_TIMESTAMP, SensorId INTEGER, Temperature FLOAT, ChangedBy FLOAT, CONSTRAINT PRIMARY KEY (Time, SensorId));
-create table events (Time TIMESTAMP DEFAULT CURRENT_TIMESTAMP, EventType CHAR(16), EventData VARCHAR(128), CONSTRAINT PRIMARY KEY (Time, EventType));
+
+create table readings 
+(
+  time TIMESTAMP DEFAULT CURRENT_TIMESTAMP, 
+  sensor INTEGER, 
+  temperature FLOAT, 
+  CONSTRAINT PRIMARY KEY (time, sensor)
+);
+
+create table commands
+(
+  time TIMESTAMP DEFAULT CURRENT_TIMESTAMP, 
+  eventType VARCHAR(64), 
+  eventData VARCHAR(128), 
+  CONSTRAINT PRIMARY KEY (time, eventType)
+);
