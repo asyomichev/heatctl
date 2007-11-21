@@ -8,6 +8,7 @@ class Scribe:
     """ Persist events of certain types """
 
     def __init__(self, queue, config):
+        self.queue = queue
         self.subscriberId = queue.subscribe(self, ("TemperatureSummaryEvent", "HeaterStatusEvent"))
 
         host = config.get("Database", "hostname")
@@ -38,4 +39,8 @@ class Scribe:
             self.db.rollback()
             raise
         
+    def unsubscribe(self):
+        self.queue.unsubscribe(self.subscriberId)
         
+    def id(self):
+        return "Scribe"
