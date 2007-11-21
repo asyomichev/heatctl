@@ -1,5 +1,7 @@
 create database heat;
 
+use heat;
+
 create table readings 
 (
   time TIMESTAMP DEFAULT CURRENT_TIMESTAMP, 
