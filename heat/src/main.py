@@ -3,6 +3,7 @@ from thermometer import Thermometer
 from averager import Averager
 from thermostat import Thermostat
 from x10switch import X10Switch
+from scribe import Scribe
 
 import logging
 import logging.config
@@ -54,16 +55,18 @@ thermometer = Thermometer(queue, config)
 thermostat = Thermostat(queue, config)
 switch = X10Switch(queue, config)
 thermometer.start()
+scribe = Scribe(queue, config)
 
 cmd = ""
 while cmd != "exit":
     cmd = raw_input("heat> ")
     if (cmd == "status"):
         print queue.status()
-        print thermometer.status()
         print switch.status()
-     
+        print thermometer.status()
+        print thermostat.status()
 
+scribe.unsubscribe()
 logger.info("Shutting down components")
 thermometer.stop()
 switch.unsubscribe()

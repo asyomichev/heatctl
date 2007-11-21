@@ -80,3 +80,6 @@ class Thermostat:
         
     def id(self):
         return "Thermostat"
+
+    def status(self):
+      print "Current target: %s" % self.findPeriod(time.time()).toString()
