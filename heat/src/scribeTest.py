@@ -22,7 +22,7 @@ class ScribeTest(unittest.TestCase):
     
     def setUp(self):
         self.config = ConfigParser.ConfigParser()
-        self.config.read("etc/heat.conf")
+        self.config.read("../etc/heat.conf")
         logging.basicConfig(level=logging.DEBUG,
                             format='%(asctime)s %(levelname)s %(name)s %(message)s')
 
