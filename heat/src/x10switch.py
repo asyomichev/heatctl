@@ -11,13 +11,14 @@ class X10Switch:
         self.subscriberId = queue.subscribe(self, "HeaterStatusEvent")
         self.queue = queue
         self.logger = logging.getLogger("heat.furnace")
+        self.lastStatus = "off"
         
     def processEvent(self, event):
         rc = 0
         if not self.testMode:
             rc = os.system("heyu %s %s" % (event.status, self.x10id));
         if rc != 0:
-            raise RuntimeException("Failed to send X10 command")
+            raise RuntimeError("Failed to send X10 command")
         self.logger.info(event.status)
         self.lastStatus = event.status
         
