@@ -20,7 +20,7 @@ class ScheduleEntry:
         self.priority = int(pr[1:])
         self.target = float(config.get(period, "target"))
         
-    def toString(self):
+    def __str__(self):
         return "%s (%s) : %d => %f" % (self.time.strftime("%H:%M"), self.period, self.priority, self.target)
         
 class Thermostat:
@@ -28,7 +28,13 @@ class Thermostat:
     
     def __init__(self, queue, config):
         self.logger = logging.getLogger("heat.thermostat")
-        self.subscriberId = queue.subscribe(self, "TemperatureEvent")
+        
+        self.wait = float(config.get("Furnace", "repeatCommand"))
+        self.lastStatusChange = 0
+        self.handlers = {}
+        self.handlers["TemperatureEvent"] = self.processTemperatureEvent
+        self.handlers["PropertyChangeEvent"] = self.processPropertyChangeEvent
+        self.subscriberId = queue.subscribe(self, "TemperatureEvent,PropertyChangeEvent")
         self.queue = queue
         self.schedule = []
         for period in config.items("Schedule"):
@@ -44,17 +50,22 @@ class Thermostat:
         self.heaterOff()
         
         for entry in self.schedule:
-          self.logger.debug(entry.toString())
+          self.logger.debug(entry.__str__())
         
+    def okToRepeat(self):
+        return (time.time() - self.lastStatusChange) > self.wait
+    
     def heaterOn(self):
-        if not self.heaterStatus:
+        if not self.heaterStatus or self.okToRepeat():
             self.queue.processEvent(HeaterStatusEvent("on"))
             self.heaterStatus = True
+            self.lastStatusChange = time.time
         
     def heaterOff(self):
-        if self.heaterStatus:
+        if self.heaterStatus or self.okToRepeat():
             self.queue.processEvent(HeaterStatusEvent("off"))
             self.heaterStatus = False
+            self.lastStatusChange = time.time
 
     def findPeriod(self, utc):
         tm = datetime.time(*time.localtime(utc)[3:5])
@@ -66,14 +77,26 @@ class Thermostat:
                 return entry
         return self.schedule[-1]
     
-    def processEvent(self, event):
+    def processTemperatureEvent(self, event):
         period = self.findPeriod(event.timestamp)
-        self.logger.debug("Sensor %d = %f, current period %s" % (event.sensor, event.temperature, period.toString()))
+        self.logger.debug("Sensor %d = %f, current period %s" % (event.sensor, event.temperature, period.__str__()))
         if (event.sensor == period.priority):
            if event.temperature < (period.target * 0.98):
                self.heaterOn()
            elif event.temperature > (period.target * 1.02):
                self.heaterOff()
+    
+    def processPropertyChangeEvent(self, event):
+        nameParts = event.name.split('.')
+        if len(nameParts) == 2 and nameParts[1] == "target":
+            for entry in self.schedule:
+                if entry.period == nameParts[0]:
+                    entry.target = float(event.value)
+                    self.logger.info("Target temperature for %s is set to %f" % 
+                                     (entry.period, entry.target))
+    
+    def processEvent(self, event):
+        self.handlers[event.type](event)
         
     def unsubscribe(self):
         self.queue.unsubscribe(self.subscriberId)
@@ -81,5 +104,8 @@ class Thermostat:
     def id(self):
         return "Thermostat"
 
+    def currentTarget(self):
+        return self.findPeriod(time.time())
+    
     def status(self):
-      print "Current target: %s" % self.findPeriod(time.time()).toString()
+      print "Current target: %s" % self.currentTarget()

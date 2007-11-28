@@ -4,6 +4,8 @@ from averager import Averager
 from thermostat import Thermostat
 from x10switch import X10Switch
 from scribe import Scribe
+from propertyReader import readProperties
+from propertyChangeEvent import *
 
 import logging
 import logging.config
@@ -57,14 +59,26 @@ switch = X10Switch(queue, config)
 thermometer.start()
 scribe = Scribe(queue, config)
 
+# All subscribers are ready. Now we can read the latest property values
+readProperties(scribe.db, queue)
+
+# Enter the interactive loop
 cmd = ""
 while cmd != "exit":
-    cmd = raw_input("heat> ")
+    cmdParts = raw_input("heat> ").split(' ')
+    cmd = cmdParts[0]
+    print cmd, cmdParts
     if (cmd == "status"):
         print queue.status()
         print switch.status()
         print thermometer.status()
         print thermostat.status()
+    elif (cmd == "target"):
+        period = cmdParts[1]
+        if period == "now":
+            period = thermostat.currentTarget().period
+        event = PropertyChangeEvent(period + ".target", cmdParts[2])
+        queue.processEvent(event)
 
 scribe.unsubscribe()
 logger.info("Shutting down components")
