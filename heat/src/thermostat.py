@@ -30,11 +30,11 @@ class Thermostat:
         self.logger = logging.getLogger("heat.thermostat")
         
         self.wait = float(config.get("Furnace", "repeatCommand"))
-        self.lastStatusChange = 0
+        self.lastStatusChange = 0.0
         self.handlers = {}
         self.handlers["TemperatureEvent"] = self.processTemperatureEvent
         self.handlers["PropertyChangeEvent"] = self.processPropertyChangeEvent
-        self.subscriberId = queue.subscribe(self, "TemperatureEvent,PropertyChangeEvent")
+        self.subscriberId = queue.subscribe(self, ("TemperatureEvent", "PropertyChangeEvent"))
         self.queue = queue
         self.schedule = []
         for period in config.items("Schedule"):
@@ -59,13 +59,13 @@ class Thermostat:
         if not self.heaterStatus or self.okToRepeat():
             self.queue.processEvent(HeaterStatusEvent("on"))
             self.heaterStatus = True
-            self.lastStatusChange = time.time
+            self.lastStatusChange = time.time()
         
     def heaterOff(self):
         if self.heaterStatus or self.okToRepeat():
             self.queue.processEvent(HeaterStatusEvent("off"))
             self.heaterStatus = False
-            self.lastStatusChange = time.time
+            self.lastStatusChange = time.time()
 
     def findPeriod(self, utc):
         tm = datetime.time(*time.localtime(utc)[3:5])

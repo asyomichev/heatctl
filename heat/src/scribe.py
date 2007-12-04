@@ -22,7 +22,7 @@ class Scribe:
         self.handlers["TemperatureSummaryEvent"] = self.processTemperatureSummaryEvent
         self.handlers["HeaterStatusEvent"]       = self.processStatusEvent
         self.handlers["PropertyChangeEvent"]     = self.processPropertyChangeEvent
-        self.subscriberId = queue.subscribe(self, ("TemperatureSummaryEvent", "HeaterStatusEvent"))
+        self.subscriberId = queue.subscribe(self, ("TemperatureSummaryEvent", "HeaterStatusEvent", "PropertyChangeEvent"))
         
     def processTemperatureSummaryEvent(self, event, c):
         c.execute(""" INSERT INTO readings (time, sensor, temperature) VALUES ("%s", %d, %f) """ %
