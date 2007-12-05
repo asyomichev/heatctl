@@ -6,6 +6,7 @@ from x10switch import X10Switch
 from scribe import Scribe
 from propertyReader import readProperties
 from propertyChangeEvent import *
+from gui import Appgui
 
 import logging
 import logging.config
@@ -13,7 +14,6 @@ import time
 import getpass
 import ConfigParser
 import sys
-
 
 class EventLogger:
     def __init__(self, queue, filter):
@@ -56,11 +56,14 @@ averager = Averager(queue, config)
 thermometer = Thermometer(queue, config)
 thermostat = Thermostat(queue, config)
 switch = X10Switch(queue, config)
-thermometer.start()
 scribe = Scribe(queue, config)
+thermometer.start()
+gui = Appgui(queue, thermostat)
 
 # All subscribers are ready. Now we can read the latest property values
 readProperties(scribe.db, queue)
+
+gui.start()
 
 # Enter the interactive loop
 cmd = ""
@@ -80,6 +83,7 @@ while cmd != "exit":
         event = PropertyChangeEvent(period + ".target", cmdParts[2])
         queue.processEvent(event)
 
+gui.unsubscribe()
 scribe.unsubscribe()
 logger.info("Shutting down components")
 thermometer.stop()
