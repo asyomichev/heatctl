@@ -16,16 +16,19 @@ class Appgui(threading.Thread):
     
     self.flame = gtk.Image()
     self.flame.set_from_file("../images/flame.jpg")
+    self.flame.show()
 
     self.noflame = gtk.Image()
     self.noflame.set_from_file("../images/noflame.jpg")
+    self.noflame.show()
 
     self.temperatures = {}
     self.setCurrent(None)
-    self.setImage(False)
+    self.lastStatus = None
+    self.setImage("off")
     
-    dic = { "on_Ok_clicked" : \
-            self.ok_clicked,
+    dic = { "on_furnaceStatus_clicked" : \
+            self.furnaceStatus_clicked,
             "on_serverinfo_destroy" : \
             (gtk.mainquit) }
     self.wTree.signal_autoconnect (dic)
@@ -48,20 +51,30 @@ class Appgui(threading.Thread):
       #print pt, event.temperature
       if pt != event.temperature:
         currentSensor = self.thermostat.currentTarget().priority
-        gtk.threads_enter()
+        gtk.gdk.threads_enter()
         self.setCurrent(currentSensor)
-        gtk.threads_leave()
+        gtk.gdk.threads_leave()
     elif event.type == "HeaterStatusEvent":
-      gtk.threads_enter()
-      setImage(event.status)
-      gtk.threads_leave()
+      gtk.gdk.threads_enter()
+      self.setImage(event.status)
+      gtk.gdk.threads_leave()
 
   def setImage(self, status):
     w = self.wTree.get_widget("furnaceStatus")
-    if status:
-      w.set_image(self.flame)
+
+    if self.lastStatus == True:
+      w.remove(self.flame)
+    elif self.lastStatus == False:
+      w.remove(self.noflame)
     else:
-      w.set_image(self.noflame)
+      print "status wasn't set"
+
+    if status == "on":
+      w.add(self.flame)
+      self.lastStatus = True
+    else:
+      w.add(self.noflame)
+      self.lastStatus = False
                               
   def setCurrent(self, sensor):
     for s in [1, 2, 3, 4]:
@@ -74,8 +87,11 @@ class Appgui(threading.Thread):
         format = u"<b><span font_desc='28'>%.1f\N{DEGREE SIGN}C</span></b>" % t
       w.set_markup(format)
 
-  def ok_clicked(self,widget):
-    print "button clicked"
+  def furnaceStatus_clicked(self,widget):
+    if self.lastStatus:
+      self.setImage("off")
+    else:
+      self.setImage("on")
     
   def run(self):
     gtk.gdk.threads_init()

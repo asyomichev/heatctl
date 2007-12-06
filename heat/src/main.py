@@ -48,7 +48,6 @@ logger.info("Loading configuration from %s" % configFile)
 config.read(configFile)
 logger.info("Creating the queue")
 queue = EventQueue()
-queue.start()
 
 logger.info("Configuring components")
 eventLogger = EventLogger(queue, [".*"] )
@@ -63,7 +62,9 @@ gui = Appgui(queue, thermostat)
 # All subscribers are ready. Now we can read the latest property values
 readProperties(scribe.db, queue)
 
+
 gui.start()
+queue.start()
 
 # Enter the interactive loop
 cmd = ""
