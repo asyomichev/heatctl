@@ -12,10 +12,17 @@ class Appgui(threading.Thread):
     threading.Thread.__init__(self)
     gladefile="../glade/toy.glade"
     windowname="heat"
-    self.wTree=gtk.glade.XML (gladefile,windowname)
+    self.wTree = gtk.glade.XML (gladefile,windowname)
     
+    self.flame = gtk.Image()
+    self.flame.set_from_file("../images/flame.jpg")
+
+    self.noflame = gtk.Image()
+    self.noflame.set_from_file("../images/noflame.jpg")
+
     self.temperatures = {}
     self.setCurrent(None)
+    self.setImage(False)
     
     dic = { "on_Ok_clicked" : \
             self.ok_clicked,
@@ -23,7 +30,7 @@ class Appgui(threading.Thread):
             (gtk.mainquit) }
     self.wTree.signal_autoconnect (dic)
         
-    self.subscriberId = queue.subscribe(self, "TemperatureEvent")
+    self.subscriberId = queue.subscribe(self, ("TemperatureEvent", "HeaterStatusEvent"))
     self.queue = queue
     self.thermostat = thermostat
     
@@ -35,15 +42,27 @@ class Appgui(threading.Thread):
     return "User Interface"
    
   def processEvent(self, event):
-    pt = self.temperatures.setdefault(event.sensor, 0.0) 
-    self.temperatures[event.sensor] = event.temperature
-    #print pt, event.temperature
-    if pt != event.temperature:
-      currentSensor = self.thermostat.currentTarget().priority
+    if event.type == "TemperatureEvent":
+      pt = self.temperatures.setdefault(event.sensor, 0.0) 
+      self.temperatures[event.sensor] = event.temperature
+      #print pt, event.temperature
+      if pt != event.temperature:
+        currentSensor = self.thermostat.currentTarget().priority
+        gtk.threads_enter()
+        self.setCurrent(currentSensor)
+        gtk.threads_leave()
+    elif event.type == "HeaterStatusEvent":
       gtk.threads_enter()
-      self.setCurrent(currentSensor)
+      setImage(event.status)
       gtk.threads_leave()
 
+  def setImage(self, status):
+    w = self.wTree.get_widget("furnaceStatus")
+    if status:
+      w.set_image(self.flame)
+    else:
+      w.set_image(self.noflame)
+                              
   def setCurrent(self, sensor):
     for s in [1, 2, 3, 4]:
       w = self.wTree.get_widget("s%d" % s)
