@@ -29,6 +29,8 @@ class Appgui(threading.Thread):
     
     dic = { "on_furnaceStatus_clicked" : \
             self.furnaceStatus_clicked,
+            "on_target1_value_changed" : \
+            self.target_changed,
             "on_serverinfo_destroy" : \
             (gtk.mainquit) }
     self.wTree.signal_autoconnect (dic)
@@ -92,6 +94,10 @@ class Appgui(threading.Thread):
       self.setImage("off")
     else:
       self.setImage("on")
+    
+  def target_changed(self, widget):
+    print "-"
+    print widget.get_value()
     
   def run(self):
     gtk.gdk.threads_init()
