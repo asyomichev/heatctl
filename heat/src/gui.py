@@ -29,13 +29,13 @@ class Appgui(threading.Thread):
     
     dic = { "on_furnaceStatus_clicked" : \
             self.furnaceStatus_clicked,
-            "on_target1_value_changed" : \
-            self.target_changed,
+#            "on_s1_changed" : \
+#            self.s1_changed,
             "on_serverinfo_destroy" : \
             (gtk.mainquit) }
     self.wTree.signal_autoconnect (dic)
         
-    self.subscriberId = queue.subscribe(self, ("TemperatureEvent", "HeaterStatusEvent"))
+    self.subscriberId = queue.subscribe(self, ("TemperatureEvent", "HeaterStatusEvent", "PropertyChangeEvent"))
     self.queue = queue
     self.thermostat = thermostat
     
@@ -47,19 +47,27 @@ class Appgui(threading.Thread):
     return "User Interface"
    
   def processEvent(self, event):
+    gtk.gdk.threads_enter()
+    
     if event.type == "TemperatureEvent":
       pt = self.temperatures.setdefault(event.sensor, 0.0) 
       self.temperatures[event.sensor] = event.temperature
       #print pt, event.temperature
       if pt != event.temperature:
-        currentSensor = self.thermostat.currentTarget().priority
-        gtk.gdk.threads_enter()
-        self.setCurrent(currentSensor)
-        gtk.gdk.threads_leave()
+        currentTarget = self.thermostat.currentTarget()
+        self.setCurrent(currentTarget.priority)
+        self.highlightTarget(currentTarget.period)
+        
     elif event.type == "HeaterStatusEvent":
-      gtk.gdk.threads_enter()
       self.setImage(event.status)
-      gtk.gdk.threads_leave()
+      
+    elif event.type == "PropertyChangeEvent":
+      nameParts = event.name.split('.')
+      if len(nameParts) == 2 and nameParts[1] == "target":
+        w = self.wTree.get_widget(nameParts[0])
+        w.set_value(float(event.value))
+        
+    gtk.gdk.threads_leave()
 
   def setImage(self, status):
     w = self.wTree.get_widget("furnaceStatus")
@@ -88,6 +96,14 @@ class Appgui(threading.Thread):
       else:
         format = u"<b><span font_desc='28'>%.1f\N{DEGREE SIGN}C</span></b>" % t
       w.set_markup(format)
+      
+  def highlightTarget(self, period):
+    for p in ('morning', 'day', 'evening', 'night'):
+      w = self.wTree.get_widget("lb_" + p)
+      if (p == period):
+        w.set_markup("<b><span foreground='red'>%s</span></b>" % p)
+      else:
+        w.set_markup(p)
 
   def furnaceStatus_clicked(self,widget):
     if self.lastStatus:
