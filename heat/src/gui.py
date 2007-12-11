@@ -2,9 +2,11 @@
 
 import sys
 from averager import TemperatureEvent
+from propertyChangeEvent import *
 import pygtk
 import gtk
 import gtk.glade
+import gobject
 import threading
 
 class Appgui(threading.Thread):
@@ -29,8 +31,8 @@ class Appgui(threading.Thread):
     
     dic = { "on_furnaceStatus_clicked" : \
             self.furnaceStatus_clicked,
-#            "on_s1_changed" : \
-#            self.s1_changed,
+            "on_target_changed" : \
+            self.targetChanged,
             "on_serverinfo_destroy" : \
             (gtk.mainquit) }
     self.wTree.signal_autoconnect (dic)
@@ -38,6 +40,10 @@ class Appgui(threading.Thread):
     self.subscriberId = queue.subscribe(self, ("TemperatureEvent", "HeaterStatusEvent", "PropertyChangeEvent"))
     self.queue = queue
     self.thermostat = thermostat
+    
+    self.sourceIds = {}
+    self.blue = gtk.gdk.Color(red=128, blue=210, green=128)
+    self.black = gtk.gdk.Color(red=210, blue=210, green=210)
     
   def unsubscribe(self):
     gtk.main_quit()
@@ -111,9 +117,20 @@ class Appgui(threading.Thread):
     else:
       self.setImage("on")
     
-  def target_changed(self, widget):
+  def targetChanged(self, widget):
     print "-"
-    print widget.get_value()
+    if widget in self.sourceIds:
+        gobject.source_remove(self.sourceIds[widget])
+    #widget.modify_base(gtk.STATE_NORMAL, self.blue)
+    self.sourceIds[widget] = gobject.timeout_add(3000, self.onTimeout, widget)    
+    
+  def onTimeout(self, widget):
+      del self.sourceIds[widget]
+      #widget.modify_base(gtk.STATE_NORMAL, self.black)
+      event = PropertyChangeEvent(widget.get_name() + ".target", 
+                                  widget.get_value())
+      self.queue.processEvent(event)
+
     
   def run(self):
     gtk.gdk.threads_init()
