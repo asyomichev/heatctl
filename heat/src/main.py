@@ -4,6 +4,7 @@ from averager import Averager
 from thermostat import Thermostat
 from x10switch import X10Switch
 from scribe import Scribe
+from stats import Stats
 from propertyReader import readProperties
 from propertyChangeEvent import *
 from gui import Appgui
@@ -56,6 +57,7 @@ thermometer = Thermometer(queue, config)
 thermostat = Thermostat(queue, config)
 switch = X10Switch(queue, config)
 scribe = Scribe(queue, config)
+stats = Stats(queue, config)
 thermometer.start()
 gui = Appgui(queue, thermostat)
 
@@ -77,6 +79,7 @@ while cmd != "exit":
         print switch.status()
         print thermometer.status()
         print thermostat.status()
+        print stats.status()
     elif (cmd == "target"):
         period = cmdParts[1]
         if period == "now":
@@ -84,14 +87,15 @@ while cmd != "exit":
         event = PropertyChangeEvent(period + ".target", cmdParts[2])
         queue.processEvent(event)
 
+logger.info("Shutting down components")
 gui.unsubscribe()
 scribe.unsubscribe()
-logger.info("Shutting down components")
 thermometer.stop()
 switch.unsubscribe()
 thermostat.unsubscribe()
 averager.unsubscribe()
 eventLogger.unsubscribe()
+stats.unsubscribe()
 
 logger.info("Stopping the queue")
 queue.stop()

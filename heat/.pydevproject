@@ -35,7 +35,19 @@
   
   
   
+  
+  
+  
+  
+  
+  
   <pydev_property name="org.python.pydev.PYTHON_PROJECT_VERSION">python 2.5</pydev_property>
+  
+  
+  
+  
+  
+  
   
   
   
@@ -105,6 +117,12 @@
     
     
     
+    
+    
+    
+    
+    
+    
     <path>/heat/src</path>
     
     
@@ -123,6 +141,12 @@
     
     
     
+    
+    
+    
+  
+  
+  
   
   
   
@@ -158,6 +182,12 @@
   
   
   
+  
+  
+  
+
+
+
 
 
 

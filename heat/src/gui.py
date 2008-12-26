@@ -2,6 +2,7 @@
 
 import sys
 from averager import TemperatureEvent
+from stats import FurnaceUtilizationEvent
 from propertyChangeEvent import *
 import pygtk
 import gtk
@@ -37,14 +38,20 @@ class Appgui(threading.Thread):
             (gtk.mainquit) }
     self.wTree.signal_autoconnect (dic)
         
-    self.subscriberId = queue.subscribe(self, ("TemperatureEvent", "HeaterStatusEvent", "PropertyChangeEvent"))
+    self.subscriberId = queue.subscribe(self, ("TemperatureEvent", "HeaterStatusEvent", "PropertyChangeEvent", "FurnaceUtilizationEvent"))
     self.queue = queue
     self.thermostat = thermostat
     
     self.sourceIds = {}
     self.blue = gtk.gdk.Color(red=128, blue=210, green=128)
     self.black = gtk.gdk.Color(red=210, blue=210, green=210)
-    
+
+    self.handlers = {}
+    self.handlers["TemperatureEvent"] = self.processTemperatureEvent
+    self.handlers["PropertyChangeEvent"] = self.processPropertyChangeEvent
+    self.handlers["HeaterStatusEvent"] = self.processHeaterStatusEvent
+    self.handlers["FurnaceUtilizationEvent"] = self.processFurnaceUtilizationEvent
+
   def unsubscribe(self):
     gtk.main_quit()
     self.queue.unsubscribe(self.subscriberId)
@@ -52,27 +59,31 @@ class Appgui(threading.Thread):
   def id(self):
     return "User Interface"
    
+  def processTemperatureEvent(self, event):
+    pt = self.temperatures.setdefault(event.sensor, 0.0) 
+    self.temperatures[event.sensor] = event.temperature
+    if pt != event.temperature:
+      currentTarget = self.thermostat.currentTarget()
+      self.setCurrent(currentTarget.priority)
+      self.highlightTarget(currentTarget.period)
+
+  def processHeaterStatusEvent(self, event):
+    self.setImage(event.status)
+      
+  def processPropertyChangeEvent(self, event):
+    nameParts = event.name.split('.')
+    if len(nameParts) == 2 and nameParts[1] == "target":
+      w = self.wTree.get_widget(nameParts[0])
+      w.set_value(float(event.value))
+
+  def processFurnaceUtilizationEvent(self, event):
+    w = self.wTree.get_widget("furnaceUtilization")
+    u = event.utilization * 100
+    w.set_text("%d%%" % u)
+      
   def processEvent(self, event):
     gtk.gdk.threads_enter()
-    
-    if event.type == "TemperatureEvent":
-      pt = self.temperatures.setdefault(event.sensor, 0.0) 
-      self.temperatures[event.sensor] = event.temperature
-      #print pt, event.temperature
-      if pt != event.temperature:
-        currentTarget = self.thermostat.currentTarget()
-        self.setCurrent(currentTarget.priority)
-        self.highlightTarget(currentTarget.period)
-        
-    elif event.type == "HeaterStatusEvent":
-      self.setImage(event.status)
-      
-    elif event.type == "PropertyChangeEvent":
-      nameParts = event.name.split('.')
-      if len(nameParts) == 2 and nameParts[1] == "target":
-        w = self.wTree.get_widget(nameParts[0])
-        w.set_value(float(event.value))
-        
+    self.handlers[event.type](event)
     gtk.gdk.threads_leave()
 
   def setImage(self, status):
@@ -98,9 +109,9 @@ class Appgui(threading.Thread):
       w.set_alignment(1,0)
       t = self.temperatures.setdefault(s, 0.0)
       if (s != sensor):
-        format = u"<span font_desc='16'>%.1f\N{DEGREE SIGN}C</span>" % t
+        format = u"<span font_desc='12'>%.1f\N{DEGREE SIGN}C</span>" % t
       else:
-        format = u"<b><span font_desc='28'>%.1f\N{DEGREE SIGN}C</span></b>" % t
+        format = u"<b><span font_desc='16'>%.1f\N{DEGREE SIGN}C</span></b>" % t
       w.set_markup(format)
       
   def highlightTarget(self, period):
