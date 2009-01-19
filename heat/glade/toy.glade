@@ -31,7 +31,7 @@
       <child>
 	<widget class="GtkTable" id="table1">
 	  <property name="visible">True</property>
-	  <property name="n_rows">2</property>
+	  <property name="n_rows">3</property>
 	  <property name="n_columns">3</property>
 	  <property name="homogeneous">False</property>
 	  <property name="row_spacing">0</property>
@@ -176,6 +176,25 @@
 	      <property name="y_padding">15</property>
 	      <property name="x_options">fill</property>
 	      <property name="y_options"></property>
+	    </packing>
+	  </child>
+
+	  <child>
+	    <widget class="GtkVBox" id="graph1">
+	      <property name="visible">True</property>
+	      <property name="homogeneous">False</property>
+	      <property name="spacing">0</property>
+
+	      <child>
+		<placeholder/>
+	      </child>
+	    </widget>
+	    <packing>
+	      <property name="left_attach">0</property>
+	      <property name="right_attach">2</property>
+	      <property name="top_attach">2</property>
+	      <property name="bottom_attach">3</property>
+	      <property name="x_options">fill</property>
 	    </packing>
 	  </child>
 	</widget>
