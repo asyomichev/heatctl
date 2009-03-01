@@ -68,6 +68,11 @@ readProperties(scribe.db, queue)
 gui.start()
 queue.start()
 
+# If started in the daemon mode, just go to endless sleep
+if len(sys.argv) > 2 and sys.argv[2] == "-d":
+    while True:
+      time.sleep(60)
+
 # Enter the interactive loop
 cmd = ""
 while cmd != "exit":
