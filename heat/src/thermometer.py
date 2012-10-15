@@ -24,7 +24,7 @@ class Thermometer(threading.Thread):
         self.queue = queue
         self.active = True
         self.logger = logging.getLogger("heat.thermometer")
-        self.port = serial.Serial(port = 0, baudrate = 2400)
+        self.port = serial.Serial('/dev/ttyUSB0', baudrate = 2400)
         self.logger.info("Opened port %s" % self.port.portstr)
 
         self.current = {}
