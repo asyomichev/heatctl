@@ -41,7 +41,7 @@ class Stats:
         return "Stats"
 
     def status(self):
-        return "current furnace utilization: %d%%" % self.getUtilization() * 100
+        return "current furnace utilization: %d%%" % (self.getUtilization() * 100)
     
     def getUtilization(self):
         self.db.query("select count(*) from commands where time > subtime(now(), '%s') and eventData = 'on'" % self.window)
