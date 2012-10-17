@@ -1,24 +1,22 @@
-from queue import EventQueue
-from thermometer import Thermometer
-from averager import Averager
-from thermostat import Thermostat
-from x10switch import X10Switch
-from scribe import Scribe
-from stats import Stats
+from queue.eventQueue import EventQueue
+from sensors.thermometer import Thermometer
+from processors.averager import Averager
+from processors.thermostat import Thermostat
+from processors.x10switch import X10Switch
+from processors.scribe import Scribe
+from processors.stats import Stats
 from propertyReader import readProperties
-from propertyChangeEvent import *
+from events.propertyChangeEvent import PropertyChangeEvent
 from gui import Appgui
 
-import logging
 import logging.config
 import time
-import getpass
 import ConfigParser
 import sys
 
 class EventLogger:
-    def __init__(self, queue, filter):
-        self.subscriberId = queue.subscribe(self, filter)
+    def __init__(self, queue, queueFilter):
+        self.subscriberId = queue.subscribe(self, queueFilter)
         self.queue = queue
         self.logger = logging.getLogger("heat.eventlogger")
         
@@ -40,7 +38,7 @@ configFile = sys.argv[1]
 #logging.basicConfig(level=logging.DEBUG,
 #                    format='%(asctime)s %(levelname)s %(name)s %(message)s')
 #                    #filename='/tmp/myapp.log',
-#                    #filemode='w')
+#                    #filemode='w')s
 logging.config.fileConfig(configFile)
 
 logger = logging.getLogger("heat.init")

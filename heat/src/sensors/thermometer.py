@@ -1,9 +1,7 @@
 import threading 
-import random
 import logging
-import time
 import serial
-from event import Event
+from events.event import Event
 
 class RawReadingEvent(Event):
     def __init__(self, sensor, temperature):

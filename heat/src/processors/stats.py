@@ -1,16 +1,8 @@
-from thermostat import HeaterStatusEvent
-from event import Event
 import logging
 import MySQLdb
 import os
 
-class FurnaceUtilizationEvent(Event):
-    def __init__(self, utilization):
-        Event.__init__(self, "FurnaceUtilizationEvent")
-        self.utilization = utilization
-    
-    def description(self):
-        return "[%s] Furnace utilization %d%%" % (self.id(), self.utilization * 100)
+from events.furnaceUtilizationEvent import FurnaceUtilizationEvent
 
 class Stats:
     """ queries the database for various stats. 

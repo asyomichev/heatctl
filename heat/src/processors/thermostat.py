@@ -1,16 +1,7 @@
 import logging
-from event import Event
+from events.heaterStatusEvent import HeaterStatusEvent
 import datetime
 import time
-
-class HeaterStatusEvent(Event):
-    def __init__(self, status):
-        Event.__init__(self, "HeaterStatusEvent")
-        self.status = status
-    
-    def description(self):
-        return "[%s] Heater status : %s" % (self.id(), self.status)
-
         
 class ScheduleEntry:
     def __init__(self, time, period, config):

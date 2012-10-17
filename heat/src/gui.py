@@ -1,21 +1,19 @@
 #!/usr/bin/env python
-
 import sys
-from averager import TemperatureEvent
-from stats import FurnaceUtilizationEvent
-from propertyChangeEvent import *
 import pygtk
 import gtk
 import gtk.glade
 import gobject
 import threading
 
+from events.propertyChangeEvent import PropertyChangeEvent
+
 class Appgui(threading.Thread):
   def __init__(self, queue, thermostat):
     threading.Thread.__init__(self)
-    gladefile="../glade/toy.glade"
-    windowname="heat"
-    self.wTree = gtk.glade.XML (gladefile,windowname)
+    gladefile = "../glade/toy.glade"
+    windowname = "heat"
+    self.wTree = gtk.glade.XML (gladefile, windowname)
     
     self.flame = gtk.Image()
     self.flame.set_from_file("../images/flame.jpg")
@@ -106,7 +104,7 @@ class Appgui(threading.Thread):
   def setCurrent(self, sensor):
     for s in [1, 2, 3, 4]:
       w = self.wTree.get_widget("s%d" % s)
-      w.set_alignment(1,0)
+      w.set_alignment(1, 0)
       t = self.temperatures.setdefault(s, 0.0)
       if (s != sensor):
         format = u"<span font_desc='12'>%.1f\N{DEGREE SIGN}C</span>" % t
@@ -122,7 +120,7 @@ class Appgui(threading.Thread):
       else:
         w.set_markup(p)
 
-  def furnaceStatus_clicked(self,widget):
+  def furnaceStatus_clicked(self, widget):
     if self.lastStatus:
       self.setImage("off")
     else:
@@ -132,13 +130,13 @@ class Appgui(threading.Thread):
     print "-"
     if widget in self.sourceIds:
         gobject.source_remove(self.sourceIds[widget])
-    #widget.modify_base(gtk.STATE_NORMAL, self.blue)
+    # widget.modify_base(gtk.STATE_NORMAL, self.blue)
     self.sourceIds[widget] = gobject.timeout_add(3000, self.onTimeout, widget)    
     
   def onTimeout(self, widget):
       del self.sourceIds[widget]
-      #widget.modify_base(gtk.STATE_NORMAL, self.black)
-      event = PropertyChangeEvent(widget.get_name() + ".target", 
+      # widget.modify_base(gtk.STATE_NORMAL, self.black)
+      event = PropertyChangeEvent(widget.get_name() + ".target",
                                   widget.get_value())
       self.queue.processEvent(event)
 
