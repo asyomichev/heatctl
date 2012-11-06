@@ -2,7 +2,7 @@ import unittest
 import ConfigParser
 import logging
 from averager import Averager
-from thermometer import RawReadingEvent
+from events.rawReadingEvent import RawReadingEvent
 
 class MockQueue:
     def __init__(self):

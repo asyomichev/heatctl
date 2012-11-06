@@ -1,4 +1,4 @@
-from propertyChangeEvent import *
+from events.propertyChangeEvent import PropertyChangeEvent
 
 
 def readProperties(db, queue):

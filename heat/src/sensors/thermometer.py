@@ -1,19 +1,9 @@
 import threading 
 import logging
 import serial
-from events.event import Event
+from events.rawReadingEvent import RawReadingEvent
+from events.statusEvent import StatusEvent
 
-class RawReadingEvent(Event):
-    def __init__(self, sensor, temperature):
-        Event.__init__(self, "RawReadingEvent")
-        self.sensor = sensor
-        self.temperature = temperature
-        self.current = {}
-    
-    def description(self):
-        return "[%s] temperature reading: sensor %d = %f" % (self.id(), self.sensor, self.temperature)
-
-    
 class Thermometer(threading.Thread):
     """ Produces raw themperature readings with no averaging of any kind """
     
@@ -31,6 +21,9 @@ class Thermometer(threading.Thread):
             sensor = int(sensorName[0][1:])
             self.current[sensor] = 0.0
             self.names[sensor] = sensorName[1]
+            
+        self.subscriberId = queue.subscribe(self, ("StatusRequestEvent"))
+        self.queue = queue
         
     def run(self):
         
@@ -51,7 +44,14 @@ class Thermometer(threading.Thread):
         self.active = False
         self.logger.debug("Requested to stop")
         
-    def status(self):
+    def id(self):
+        return "Thermometer"
+        
+    def processEvent(self, event):
+        if ("StatusRequestEvent" == event.type) and ((self.id() == event.target) or ("*" == event.target)):
+            self.queue.processEvent(StatusEvent(self.id(), self.getStatus()));
+        
+    def getStatus(self):
         result = 'current temperatures: \n'
         for sensor in self.current.keys():
             result += "  s%d(%s) = %f\n" % (sensor, self.names[sensor], self.current[sensor])

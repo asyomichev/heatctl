@@ -1,6 +1,7 @@
 import threading
 import logging
 import re
+from events.statusEvent import StatusEvent
     
 class Subscription:
     """ A subscription table entry """
@@ -65,6 +66,11 @@ class EventQueue(threading.Thread):
         self.mutex.release()
         self.logger.debug("{%d} + %s" % (queueSize, event.description()))
 
+        if ("StatusRequestEvent" == event.type) and (("Queue" == event.target) or ("*" == event.target)):
+            self.processEvent(StatusEvent("Queue", self.getStatus()));  
+        elif ("StatusEvent" == event.type):
+            print event.description()
+
     def notifyListeners(self, event):
         for subscription in self.subscriptions.values():
             subscription.processEvent(event)
@@ -80,6 +86,6 @@ class EventQueue(threading.Thread):
         del self.subscriptions[listenerId]
         self.logger.debug("Removed listener (id: %d)" % listenerId)
         
-    def status(self):
+    def getStatus(self):
         return "queue size %d" % len(self.subscriptions) 
         

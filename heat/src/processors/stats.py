@@ -1,15 +1,16 @@
 import logging
 import MySQLdb
 import os
+from events.statusEvent import StatusEvent
 
 from events.furnaceUtilizationEvent import FurnaceUtilizationEvent
 
 class Stats:
     """ queries the database for various stats. 
-        HeaterStatusEvent is only used to trigger the query """
+        StatusRequestEvent is only used to trigger the query """
     
     def __init__(self, queue, config):
-        self.subscriberId = queue.subscribe(self, "HeaterStatusEvent")
+        self.subscriberId = queue.subscribe(self, "StatusRequestEvent")
         self.queue = queue
         self.logger = logging.getLogger("heat.stats")
         self.window = config.get("Stats", "window")
@@ -22,9 +23,9 @@ class Stats:
         self.db = MySQLdb.connect(host, user, password, db)
 
     def processEvent(self, event):
-        ev = FurnaceUtilizationEvent(self.getUtilization())
-        self.logger.info(ev.description())
-        self.queue.processEvent(ev)
+        if ("StatusRequestEvent" == event.type) and ((self.id() == event.target) or ("*" == event.target)):
+            self.queue.processEvent(StatusEvent(self.id(), self.getStatus()));
+            self.queue.processEvent(FurnaceUtilizationEvent(self.getUtilization()))
         
     def unsubscribe(self):
         self.queue.unsubscribe(self.subscriberId)
@@ -32,7 +33,7 @@ class Stats:
     def id(self):
         return "Stats"
 
-    def status(self):
+    def getStatus(self):
         return "current furnace utilization: %d%%" % (self.getUtilization() * 100)
     
     def getUtilization(self):

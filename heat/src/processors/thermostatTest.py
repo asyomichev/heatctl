@@ -4,18 +4,21 @@ import sys
 import ConfigParser
 import logging
 from thermostat import Thermostat
-from averager import TemperatureEvent
+from events.temperatureEvent import TemperatureEvent
+from events.statusRequestEvent import StatusRequestEvent
+from events.statusEvent import StatusEvent
 
 class MockQueue:
     def __init__(self):
         self.expectEvent = None 
     
     def processEvent(self, event):
-        if self.expectEvent:
-            if self.expectEvent != event.status:
-                raise RuntimeError("Got furnace status %s, ecpected %s" % (event.status, self.expectEvent) )
-        else:
-            raise RuntimeError("Unexpected event %s" % event.description())
+        if not isinstance(event, StatusEvent):
+            if self.expectEvent:
+                if self.expectEvent != event.status:
+                     raise RuntimeError("Got furnace status %s, expected %s" % (event.status, self.expectEvent) )
+            else:
+                raise RuntimeError("Unexpected event %s" % event.description())
         print event.description()
         
     def subscribe(self, listener, filter):
@@ -24,11 +27,29 @@ class MockQueue:
     def unsubscribe(self, listenerId):
         pass
 
+class MockConfig:
+    def __init__(self):
+        self.sections = {}
+        self.sections['Schedule'] = [('morning', '5:00'),('day', '9:00'),('evening', '18:00'),('night', '21:00')];
+        self.sections['morning' ] = [('priority', 's2'),('target','20.0')]
+        self.sections['day' ]     = [('priority', 's2'),('target','20.0')]
+        self.sections['evening' ] = [('priority', 's2'),('target','20.0')]
+        self.sections['night' ]   = [('priority', 's3'),('target','20.0')]
+        self.sections['Furnace' ] = [('repeatCommand', '60')]
+
+    def items(self, section):
+        return self.sections[section]
+    
+    def get(self, section, item):
+        for i in self.sections[section]:
+            if i[0] == item:
+                return i[1]
+        raise RuntimeError('Not found: %s/%s' % (section, item))
+
 class ThermostatTest(unittest.TestCase):
     
     def setUp(self):
-        self.config = ConfigParser.ConfigParser()
-        self.config.read("etc/heat.conf")
+        self.config = MockConfig()
         logging.basicConfig(level=logging.DEBUG,
                             format='%(asctime)s %(levelname)s %(name)s %(message)s')
 
@@ -36,8 +57,9 @@ class ThermostatTest(unittest.TestCase):
         q = MockQueue()
         q.expectEvent = "off"
         a = Thermostat(q, self.config)
-        for entry in a.schedule:
-            print entry.toString()
+        
+        a.processEvent(StatusRequestEvent("Thermostat"));
+        
         self.assert_(a.findPeriod(datetime.time(0,30)).period == "night")
         self.assert_(a.findPeriod(datetime.time(3,30)).period == "night")
         self.assert_(a.findPeriod(datetime.time(5,30)).period == "morning")
