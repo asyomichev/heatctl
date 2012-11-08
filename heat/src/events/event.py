@@ -1,15 +1,14 @@
-import datetime
-import random
+import time
 
 class Event:
     """ Base event class """
     def __init__(self, eventClass):
-        self.timestamp = datetime.datetime.now().time()
+        self.timestamp = time.time()
         self.type = eventClass
         
     def id(self):
         """ String representation of the timestamp, an int with 10ms resolution """
-        return "%d%d%d%d" % (self.timestamp.hour,self.timestamp.minute,self.timestamp.second,random.randint(101,999))
+        return "%d" % self.timestamp
     
     def getTimestamp(self):
         return str(self.timestamp)

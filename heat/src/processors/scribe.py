@@ -1,9 +1,9 @@
 import logging
 import MySQLdb
-from event import Event
+from events.event import Event
 from averager import TemperatureSummaryEvent
-from thermostat import HeaterStatusEvent
-from propertyChangeEvent import PropertyChangeEvent
+from events.heaterCommandEvent import HeaterCommandEvent
+from events.propertyChangeEvent import PropertyChangeEvent
 
 class Scribe:
     """ Persist events of certain types """

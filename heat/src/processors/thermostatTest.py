@@ -1,7 +1,6 @@
 import unittest
 import datetime
-import sys
-import ConfigParser
+import time
 import logging
 from thermostat import Thermostat
 from events.temperatureEvent import TemperatureEvent
@@ -16,12 +15,12 @@ class MockQueue:
         if not isinstance(event, StatusEvent):
             if self.expectEvent:
                 if self.expectEvent != event.status:
-                     raise RuntimeError("Got furnace status %s, expected %s" % (event.status, self.expectEvent) )
+                    raise RuntimeError("Got furnace status %s, expected %s" % (event.status, self.expectEvent) )
             else:
                 raise RuntimeError("Unexpected event %s" % event.description())
         print event.description()
         
-    def subscribe(self, listener, filter):
+    def subscribe(self, listener, flt):
         pass
         
     def unsubscribe(self, listenerId):
@@ -60,63 +59,80 @@ class ThermostatTest(unittest.TestCase):
         
         a.processEvent(StatusRequestEvent("Thermostat"));
         
-        self.assert_(a.findPeriod(datetime.time(0,30)).period == "night")
-        self.assert_(a.findPeriod(datetime.time(3,30)).period == "night")
-        self.assert_(a.findPeriod(datetime.time(5,30)).period == "morning")
-        self.assert_(a.findPeriod(datetime.time(7,30)).period == "morning")
-        self.assert_(a.findPeriod(datetime.time(10,30)).period == "day")
-        self.assert_(a.findPeriod(datetime.time(13,30)).period == "day")
-        self.assert_(a.findPeriod(datetime.time(19,30)).period == "evening")
-        self.assert_(a.findPeriod(datetime.time(22,30)).period == "night")
+        tm = datetime.datetime(year=2012,month=1,day=1)
+        tm = tm + datetime.timedelta(minutes = 30)
+        self.assert_(a.findPeriod(time.mktime(tm.timetuple())).period == "night")
+        tm = tm + datetime.timedelta(hours = 3)
+        self.assert_(a.findPeriod(time.mktime(tm.timetuple())).period == "night")
+        tm = tm + datetime.timedelta(hours = 2)
+        self.assert_(a.findPeriod(time.mktime(tm.timetuple())).period == "morning")
+        tm = tm + datetime.timedelta(hours = 2)
+        self.assert_(a.findPeriod(time.mktime(tm.timetuple())).period == "morning")
+        tm = tm + datetime.timedelta(hours = 3)
+        self.assert_(a.findPeriod(time.mktime(tm.timetuple())).period == "day")
+        tm = tm + datetime.timedelta(hours = 3)
+        self.assert_(a.findPeriod(time.mktime(tm.timetuple())).period == "day")
+        tm = tm + datetime.timedelta(hours = 5)
+        self.assert_(a.findPeriod(time.mktime(tm.timetuple())).period == "evening")
+        tm = tm + datetime.timedelta(hours = 3)
+        self.assert_(a.findPeriod(time.mktime(tm.timetuple())).period == "night")
 
     def testSwitching(self):
         q = MockQueue()
         q.expectEvent = "off"
         a = Thermostat(q, self.config)
 
+        tm = datetime.datetime(year=2012,month=1,day=1,hour=21)
         q.expectEvent = None
         e = TemperatureEvent(1, 27, 60)
-        e.timestamp = datetime.time(21, 0)
+        e.timestamp = time.mktime(tm.timetuple())
         a.processEvent(e)
         
+        tm = tm + datetime.timedelta(minutes = 10)
         q.expectEvent = "on"
         e = TemperatureEvent(3, 18, 60)
-        e.timestamp = datetime.time(21, 10)
+        e.timestamp = time.mktime(tm.timetuple())
         a.processEvent(e)
 
+        tm = tm + datetime.timedelta(minutes = 5)
         q.expectEvent = None
         e = TemperatureEvent(2, 26, 60) # not the active sensor
-        e.timestamp = datetime.time(21, 15)
+        e.timestamp = time.mktime(tm.timetuple())
         a.processEvent(e)
 
+        tm = tm + datetime.timedelta(minutes = 10)
         q.expectEvent = None # still too cold
         e = TemperatureEvent(3, 19, 60)
-        e.timestamp = datetime.time(21, 20)
+        e.timestamp = time.mktime(tm.timetuple())
         a.processEvent(e)
 
+        tm = tm + datetime.timedelta(minutes = 5)
         q.expectEvent = "off"
         e = TemperatureEvent(3, 20.5, 60)
-        e.timestamp = datetime.time(21, 25)
+        e.timestamp = time.mktime(tm.timetuple())
         a.processEvent(e)
 
+        tm = tm - datetime.timedelta(minutes = 10)
         q.expectEvent = None
         e = TemperatureEvent(1, 16, 60) # not the active sensor
-        e.timestamp = datetime.time(21, 15)
+        e.timestamp = time.mktime(tm.timetuple())
         a.processEvent(e)
     
+        tm = tm - datetime.timedelta(hours = 15, minutes = 55)
         q.expectEvent = None
         e = TemperatureEvent(3, 16, 60) # not the active sensor
-        e.timestamp = datetime.time(5, 20)
+        e.timestamp = time.mktime(tm.timetuple())
         a.processEvent(e)
 
         q.expectEvent = "on"
         e = TemperatureEvent(4, 16, 60) # not the active sensor
-        e.timestamp = datetime.time(5, 20)
+        e.timestamp = time.mktime(tm.timetuple())
         a.processEvent(e)
 
+        tm = tm + datetime.timedelta(minutes = 0)
         q.expectEvent = "off"
         e = TemperatureEvent(4, 23, 60) # not the active sensor
-        e.timestamp = datetime.time(5, 40)
+        e.timestamp = time.mktime(tm.timetuple())
         a.processEvent(e)
 
 if __name__ == '__main__':

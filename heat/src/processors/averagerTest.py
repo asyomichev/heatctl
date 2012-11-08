@@ -19,7 +19,7 @@ class MockQueue:
         else:
             raise RuntimeError("Unexpected event %s" % event.description())
         
-    def subscribe(self, listener, filter):
+    def subscribe(self, listener, flt):
         pass
         
     def unsubscribe(self, listenerId):

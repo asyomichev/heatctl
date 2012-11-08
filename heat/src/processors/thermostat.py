@@ -69,10 +69,11 @@ class Thermostat:
 
     def findPeriod(self, timestamp):
         index = len(self.schedule)
+        timeofday = datetime.datetime.fromtimestamp(timestamp).time()
         while index > 0:
             index -= 1
             entry = self.schedule[index]
-            if entry.time < timestamp:
+            if entry.time < timeofday:
                 return entry
         return self.schedule[-1]
     
@@ -108,8 +109,7 @@ class Thermostat:
         return "Thermostat"
 
     def timeNow(self):
-        dt = datetime.datetime.now()
-        return dt.time() #.time(dt.hour, dt.minute, dt.second)
+        return time.time() 
 
     def currentTarget(self):
         return self.findPeriod(self.timeNow())
