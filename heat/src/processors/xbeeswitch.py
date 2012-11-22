@@ -3,6 +3,7 @@ from xbee import XBee
 import logging
 import serial
 import os
+import time
 
 class XbeeSwitch:
     ''' Listens for heater status events and sends them over an XBee DIO link '''
@@ -12,23 +13,40 @@ class XbeeSwitch:
         self.logger = logging.getLogger('heat.xbee')
         self.lastStatus = 'off'
         
-        # Connect the XBee
-        confSection = 'XBee'
-        port = config.get(confSection, 'port')
-        baudrate = config.get(confSection, 'baudrate')
-        tty = serial.Serial(port, baudrate)
-        self.xbee = XBee(tty)
-        self.xbee.send('at', frame_id='A', command='MY')
-        self.dest = config.get(confSection, 'destAddr').decode('string_escape')
-        self.myid = self.xbee.wait_read_frame()
-        self.logger.debug('Local XBee: 0x%02X%02X, remote: 0x%02X%02X' % (self.myid[0], self.myid[1], self.dest[0], self.dest[1]))
+        # Connect the XBee lazily, from event processing thread,
+        # as serial/xbee seem to lock up if accessed from different threads
+        self.xbee = None
+        self.config = config 
 
         # Subscribe to events
         self.subscriberId = queue.subscribe(self, ('HeaterCommandEvent', 'StatusRequestEvent'))
         self.queue = queue
+      
+    def connect(self):
+        # Connect the XBee
+        self.logger.debug('Initializing xbee connection...')
+        confSection = 'XBee'
+        port = self.config.get(confSection, 'port')
+        baudrate = self.config.get(confSection, 'baudrate')
+        tty = serial.Serial(port, baudrate)
+        self.xbee = XBee(tty)
+        self.xbee.send('at', frame_id='A', command='MY')
+        self.myid = self.xbee.wait_read_frame()
+        self.dest = self.config.get(confSection, 'destAddr').decode('string_escape')
+        self.logger.debug('Local XBee: %s, remote: %s' % (self.myid, self.dest))
+
+        # Flex the muscules
+        self.sendCommand('on')
+        time.sleep(3)
+        self.sendCommand('off')
+
         
     def sendCommand(self, onoff):
+        if not self.xbee:
+            self.connect() # lazy initialization
+
         param = '\x01' if onoff == 'on' else '\x00'
+        self.logger.debug('About to send command "%s"' % onoff)
         self.xbee.send('remote_at', frame_id='A', dest_addr=self.dest, command='IO', parameter=param)
         self.logger.debug('Sent command "%s", response: "%s"' % (onoff, self.xbee.wait_read_frame()))
         

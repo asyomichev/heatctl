@@ -1,8 +1,8 @@
 from queue.eventQueue import EventQueue
-#from sensors.thermometer import Thermometer
 from processors.averager import Averager
 from processors.thermostat import Thermostat
-from processors.x10switch import X10Switch
+from processors.xbeeswitch import XbeeSwitch
+from sensors.thermometer import Thermometer
 #from processors.scribe import Scribe
 #from processors.stats import Stats
 from propertyReader import readProperties
@@ -53,13 +53,13 @@ logger.info("Configuring components")
 eventLogger = EventLogger(queue, [".*"] )
 averager = Averager(queue, config)
 thermostat = Thermostat(queue, config)
-#switch = X10Switch(queue, config)
+switch = XbeeSwitch(queue, config)
 #scribe = Scribe(queue, config)
 #stats = Stats(queue, config)
 #gui = Appgui(queue, thermostat)
 
-#thermometer = Thermometer(queue, config)
-#thermometer.start()
+thermometer = Thermometer(queue, config)
+thermometer.start()
 
 # All subscribers are ready. Now we can read the latest property values
 #readProperties(scribe.db, queue)
@@ -90,8 +90,8 @@ while cmd != "exit":
 logger.info("Shutting down components")
 #gui.unsubscribe()
 #scribe.unsubscribe()
-#thermometer.stop()
-#switch.unsubscribe()
+thermometer.stop()
+switch.unsubscribe()
 thermostat.unsubscribe()
 averager.unsubscribe()
 eventLogger.unsubscribe()
