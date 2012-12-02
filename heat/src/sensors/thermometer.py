@@ -12,15 +12,20 @@ class Thermometer(threading.Thread):
         self.queue = queue
         self.active = True
         self.logger = logging.getLogger("heat.thermometer")
-        self.port = serial.Serial('/dev/ttyUSB0', baudrate = 2400)
+        confSection = 'Thermometer'
+        port = self.config.get(confSection, 'port')
+        baudrate = self.config.get(confSection, 'baudrate')
+        self.port = serial.Serial(port, baudrate)
         self.logger.info("Opened port %s" % self.port.portstr)
 
-        self.current = {}
+        self.lastReading = {}
         self.names = {}
-        for sensorName in config.items("SensorNames"):
-            sensor = int(sensorName[0][1:])
-            self.current[sensor] = 0.0
-            self.names[sensor] = sensorName[1]
+        self.correctionRatios = {}
+        for sensor in self.config.get(confSection, 'sensors').split(','):
+            index = int(self.config.get(sensor, 'index'))
+            self.lastReading[index] = 0.0
+            self.names[index] = self.config.get(sensor, 'name');
+            self.correctionRatios[index] = float(self.config.get(sensor, 'correctionRatio'))
             
         self.subscriberId = queue.subscribe(self, ("StatusRequestEvent"))
         self.queue = queue
@@ -32,8 +37,8 @@ class Thermometer(threading.Thread):
             try:
                 values = line.split(' ', 2)
                 sensor = int(values[0])
-                temperature = float(values[1])
-                self.current[sensor] = temperature
+                temperature = float(values[1]) * self.correctionRatios[sensor]
+                self.lastReading[sensor] = temperature
                 event = RawReadingEvent(sensor, temperature)
                 self.queue.processEvent(event)
             except:
@@ -53,6 +58,6 @@ class Thermometer(threading.Thread):
         
     def getStatus(self):
         result = 'current temperatures: \n'
-        for sensor in self.current.keys():
-            result += "  s%d(%s) = %f\n" % (sensor, self.names[sensor], self.current[sensor])
+        for sensor in self.lastReading.keys():
+            result += "  s%d(%s) = %f\n" % (sensor, self.names[sensor], self.lastReading[sensor])
         return result
