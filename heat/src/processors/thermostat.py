@@ -8,19 +8,18 @@ class ScheduleEntry:
     def __init__(self, time, period, config):
         self.time = time
         self.period = period
-        pr = config.get(period, "priority")
-        self.priority = int(pr[1:])
+        sensorName = config.get(period, "sensor")
+        self.sensorIndex = int(config.get(sensorName, "index"))
         self.target = float(config.get(period, "target"))
         
     def __str__(self):
-        return "%s (%s) : %d => %f" % (self.time.strftime("%H:%M"), self.period, self.priority, self.target)
+        return "%s (%s) : %d => %f" % (self.time.strftime("%H:%M"), self.period, self.sensorIndex, self.target)
         
 class Thermostat:
     """ Based on incoming temperature readings generates heater on/off events """
     
     def __init__(self, queue, config):
         self.logger = logging.getLogger("heat.thermostat")
-        
         self.wait = float(config.get("Furnace", "repeatCommand"))
         self.lastStatusChange = 0.0
         self.handlers = {}
@@ -80,7 +79,7 @@ class Thermostat:
     def processTemperatureEvent(self, event):
         period = self.findPeriod(event.timestamp)
         self.logger.debug("Sensor %d = %f, current period %s" % (event.sensor, event.temperature, period.__str__()))
-        if (event.sensor == period.priority):
+        if (event.sensor == period.sensorIndex):
             if event.temperature < (period.target * 0.98):
                 self.heaterOn()
             elif event.temperature > (period.target * 1.02):
