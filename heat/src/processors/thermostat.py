@@ -64,7 +64,7 @@ class Thermostat:
         result = ''
         for s in self.schedule:
             result += '\n    %s' % s
-        result += "\nCurrent target: %s" % self.currentTarget()
+        result += "\nCurrent target: %s, last command sent %ds ago" % (self.currentTarget(), time.time() - self.lastStatusChange)
         return result
 
     def findPeriod(self, timestamp):

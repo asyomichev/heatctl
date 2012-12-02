@@ -13,19 +13,19 @@ class Thermometer(threading.Thread):
         self.active = True
         self.logger = logging.getLogger("heat.thermometer")
         confSection = 'Thermometer'
-        port = self.config.get(confSection, 'port')
-        baudrate = self.config.get(confSection, 'baudrate')
+        port = config.get(confSection, 'port')
+        baudrate = config.get(confSection, 'baudrate')
         self.port = serial.Serial(port, baudrate)
         self.logger.info("Opened port %s" % self.port.portstr)
 
         self.lastReading = {}
         self.names = {}
         self.correctionRatios = {}
-        for sensor in self.config.get(confSection, 'sensors').split(','):
-            index = int(self.config.get(sensor, 'index'))
+        for sensor in config.get(confSection, 'sensors').split(','):
+            index = int(config.get(sensor, 'index'))
             self.lastReading[index] = 0.0
-            self.names[index] = self.config.get(sensor, 'name');
-            self.correctionRatios[index] = float(self.config.get(sensor, 'correctionRatio'))
+            self.names[index] = config.get(sensor, 'name');
+            self.correctionRatios[index] = float(config.get(sensor, 'correctionRatio'))
             
         self.subscriberId = queue.subscribe(self, ("StatusRequestEvent"))
         self.queue = queue
