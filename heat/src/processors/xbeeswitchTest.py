@@ -22,7 +22,7 @@ class MockQueue:
 class MockConfig:
     def __init__(self):
         self.sections = {}
-        self.sections['XBee'] = [('port', '/dev/ttyUSB0'),('baudrate', '9600'),('destAddr', '\x18\x20'),('testMode', 'off')];
+        self.sections['XBee'] = [('port', '/dev/ttyUSB1'),('baudrate', '9600'),('destAddr', '\x18\x20'),('testMode', 'off')];
 
     def items(self, section):
         return self.sections[section]
@@ -48,6 +48,8 @@ class XbeeSwitchTest(unittest.TestCase):
         a.processEvent(HeaterCommandEvent("on"));
         time.sleep(3);
         a.processEvent(HeaterCommandEvent("off"));
+        time.sleep(3);
+        a.processEvent(HeaterCommandEvent("on"));
         
 if __name__ == '__main__':
     unittest.main() 
