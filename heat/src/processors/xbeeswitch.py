@@ -4,14 +4,20 @@ import logging
 import serial
 import os
 import time
+import threading
 
 class XbeeSwitch:
     ''' Listens for heater status events and sends them over an XBee DIO link '''
     
     def __init__(self, queue, config):
         self.testMode = (config.get('XBee', 'testMode') == 'on')
+        self.timeout  = float(config.get('XBee', 'commandTimeout'))
+        self.retry  = int(config.get('XBee', 'commandRetry'))
         self.logger = logging.getLogger('heat.xbee')
         self.lastStatus = 'off'
+        self.frameId = 0
+        self.framesResponded = []
+        self.cond = threading.Condition()
         
         # Connect the XBee lazily, from event processing thread,
         # as serial/xbee seem to lock up if accessed from different threads
@@ -22,6 +28,24 @@ class XbeeSwitch:
         self.subscriberId = queue.subscribe(self, ('HeaterCommandEvent', 'StatusRequestEvent'))
         self.queue = queue
       
+    def commandResponse(self, response):
+        self.logger.debug('Command response: "%s"' % response)
+        # e.g. {'status': '\x00', 'source_addr': '\x18 ', 'source_addr_long': '\x00\x13\xa2\x00@{5\xac', 'frame_id': 'A', 'command': 'IO', 'id': 'remote_at_response'}
+        self.cond.acquire();
+        try:
+            self.framesResponded.append(response['frame_id'])
+            self.cond.notify()
+        finally:
+            self.cond.release()
+        
+    def waitCommandResponse(self, frameId):
+        self.cond.acquire()
+        try:
+            while (not frameId in self.framesResponded):
+                self.cond.wait(self.timeout)
+        finally:
+            self.cond.release()
+        
     def connect(self):
         # Connect the XBee
         self.logger.debug('Initializing xbee connection...')
@@ -40,15 +64,22 @@ class XbeeSwitch:
         time.sleep(3)
         self.sendCommand('off')
 
-        
     def sendCommand(self, onoff):
         if not self.xbee:
             self.connect() # lazy initialization
 
         param = '\x01' if onoff == 'on' else '\x00'
         self.logger.debug('About to send command "%s"' % onoff)
-        self.xbee.send('remote_at', frame_id='A', dest_addr=self.dest, command='IO', parameter=param)
-        self.logger.debug('Sent command "%s", response: "%s"' % (onoff, self.xbee.wait_read_frame()))
+        sent = False
+        retries = 0
+        while (not sent and retries < self.retry):
+            self.xbee.send('remote_at', frame_id=str(self.frameId), dest_addr=self.dest, command='IO', parameter=param)
+            sent = self.waitCommandResponse(str(self.frameId))
+        self.frameId += 1
+        if (sent):
+            self.logger.debug('Sent command "%s"' % onoff)
+        else:
+            self.logger.error('Command %s: no response after %d attempts' % (onoff, retries))
         
     def processEvent(self, event):
         if ('StatusRequestEvent' == event.type) and ((self.id() == event.target) or ('*' == event.target)):
